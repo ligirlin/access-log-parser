@@ -16,66 +16,69 @@ public class Main {
             String filePath = scanner.nextLine();
 
             File file = new File(filePath);
-            boolean fileExists = file.exists();
-            boolean isFile = file.isFile();
-
-            if (!fileExists) {
+            if (!file.exists()) {
                 System.out.println("Указанный файл не существует.");
                 continue;
-            } else {
-                if (!isFile) {
-                    System.out.println("Указанный путь является путём к папке, а не к файлу.");
-                    continue;
-                } else {
-                    correctFilesCount++;
-                    System.out.println("Путь указан верно");
-                    System.out.println("Это файл номер " + correctFilesCount);
-
-                    // Начинаем чтение и анализ файла
-                    analyzeFile(filePath);
-                }
             }
+            if (file.isDirectory()) {
+                System.out.println("Указанный путь является путём к папке, а не к файлу.");
+                continue;
+            }
+
+            correctFilesCount++;
+            System.out.println("Путь указан верно. Это файл номер " + correctFilesCount);
+            analyzeFile(filePath);
         }
     }
 
     private static void analyzeFile(String path) {
         int totalLines = 0;
-        int maxLength = 0;
-        int minLength = Integer.MAX_VALUE;
+        int yandexBots = 0;
+        int googleBots = 0;
 
-        try (FileReader fileReader = new FileReader(path);
-             BufferedReader reader = new BufferedReader(fileReader)) {
+        try (FileReader fileReader = new FileReader(path); BufferedReader reader = new BufferedReader(fileReader)) {
 
             String line;
             while ((line = reader.readLine()) != null) {
                 int length = line.length();
-
-                // Проверка на превышение длины 1024 символа
                 if (length > 1024) {
-                    throw new RuntimeException("В файле обнаружена строка длиннее 1024 символов (" + length + " симв.)");
+                    throw new RuntimeException("Строка длиннее 1024 символов!");
                 }
-
                 totalLines++;
+                String[] quotes = line.split("\"");
+                if (quotes.length >= 6) {
+                    String userAgent = quotes[5];
+                    int openBracket = userAgent.indexOf("(");
+                    int closeBracket = userAgent.indexOf(")");
 
-                if (length > maxLength) {
-                    maxLength = length;
-                }
+                    if (openBracket != -1 && closeBracket != -1) {
+                        String firstBrackets = userAgent.substring(openBracket + 1, closeBracket);
 
-                if (length < minLength) {
-                    minLength = length;
+                        String[] parts = firstBrackets.split(";");
+                        if (parts.length >= 2) {
+
+                            String fragment = parts[1].trim();
+
+
+                            String botName = fragment.split("/")[0];
+
+
+                            if (botName.equalsIgnoreCase("YandexBot")) {
+                                yandexBots++;
+                            } else if (botName.equalsIgnoreCase("Googlebot")) {
+                                googleBots++;
+                            }
+                        }
+                    }
                 }
             }
 
-            // Вывод статистики после успешного прочтения всех строк
-            System.out.println("Анализ завершен успешно:");
-            System.out.println("Общее количество строк: " + totalLines);
-            System.out.println("Длина самой длинной строки: " + maxLength);
-            // Если файл был пустой, minLength останется MAX_VALUE, обработаем это
-            System.out.println("Длина самой короткой строки: " + (totalLines > 0 ? minLength : 0));
+            System.out.println("Всего запросов: " + totalLines);
+            System.out.println("Запросов от YandexBot: " + yandexBots + " (доля: " + (double) yandexBots / totalLines + ")");
+            System.out.println("Запросов от Googlebot: " + googleBots + " (доля: " + (double) googleBots / totalLines + ")");
             System.out.println("-----------------------------------");
 
         } catch (Exception ex) {
-            // Печать стека ошибок согласно заданию
             ex.printStackTrace();
         }
     }
