@@ -12,71 +12,67 @@ public class Main {
         int correctFilesCount = 0;
 
         while (true) {
-            System.out.println("Введите путь к файлу: ");
+            System.out.println("Введите путь к файлу (или 'exit' для выхода): ");
             String filePath = scanner.nextLine();
 
-            File file = new File(filePath);
-            boolean fileExists = file.exists();
-            boolean isFile = file.isFile();
+            if (filePath.equalsIgnoreCase("exit")) {
+                break;
+            }
 
-            if (!fileExists) {
+            File file = new File(filePath);
+            if (!file.exists()) {
                 System.out.println("Указанный файл не существует.");
                 continue;
-            } else {
-                if (!isFile) {
-                    System.out.println("Указанный путь является путём к папке, а не к файлу.");
-                    continue;
-                } else {
-                    correctFilesCount++;
-                    System.out.println("Путь указан верно");
-                    System.out.println("Это файл номер " + correctFilesCount);
+            }
+            if (file.isDirectory()) {
+                System.out.println("Указанный путь является путём к папке, а не к файлу.");
+                continue;
+            }
 
-                    // Начинаем чтение и анализ файла
-                    analyzeFile(filePath);
-                }
+            correctFilesCount++;
+            System.out.println("Путь указан верно. Это файл номер " + correctFilesCount);
+
+            try {
+                analyzeFile(filePath);
+            } catch (RuntimeException e) {
+                System.out.println("Ошибка при анализе файла: " + e.getMessage());
+                // Можно убрать вывод стека, если не хотите прерывать цикл while
+                e.printStackTrace();
             }
         }
     }
 
     private static void analyzeFile(String path) {
-        int totalLines = 0;
-        int maxLength = 0;
-        int minLength = Integer.MAX_VALUE;
+        Statistics statistics = new Statistics();
 
-        try (FileReader fileReader = new FileReader(path);
-             BufferedReader reader = new BufferedReader(fileReader)) {
+        try (FileReader fileReader = new FileReader(path); BufferedReader reader = new BufferedReader(fileReader)) {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                int length = line.length();
-
-                // Проверка на превышение длины 1024 символа
-                if (length > 1024) {
-                    throw new RuntimeException("В файле обнаружена строка длиннее 1024 символов (" + length + " симв.)");
+                // Пропускаем пустые строки, чтобы не ловить StringIndexOutOfBoundsException
+                if (line.trim().isEmpty()) {
+                    continue;
                 }
 
-                totalLines++;
-
-                if (length > maxLength) {
-                    maxLength = length;
+                if (line.length() > 1024) {
+                    throw new RuntimeException("Строка в файле длиннее 1024 символов!");
                 }
 
-                if (length < minLength) {
-                    minLength = length;
-                }
+                // Создаем объект записи. Если формат неверный, LogEntry сам выбросит исключение
+                LogEntry entry = new LogEntry(line);
+
+                // Добавляем запись в статистику
+                statistics.addEntry(entry);
             }
 
-            // Вывод статистики после успешного прочтения всех строк
-            System.out.println("Анализ завершен успешно:");
-            System.out.println("Общее количество строк: " + totalLines);
-            System.out.println("Длина самой длинной строки: " + maxLength);
-            // Если файл был пустой, minLength останется MAX_VALUE, обработаем это
-            System.out.println("Длина самой короткой строки: " + (totalLines > 0 ? minLength : 0));
-            System.out.println("-----------------------------------");
+            // Вывод итоговых данных
+            System.out.println("--- Статистика для файла: " + path + " ---");
+            System.out.println("Средний объём трафика в час: " + statistics.getTrafficRate());
+            System.out.println("--------------------------------------------------");
 
         } catch (Exception ex) {
-            // Печать стека ошибок согласно заданию
-            ex.printStackTrace();
+            // Оборачиваем любое исключение (IO или парсинг) в RuntimeException
+            throw new RuntimeException(ex);
         }
     }
 }
