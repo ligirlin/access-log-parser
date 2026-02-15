@@ -66,7 +66,7 @@ public class Main {
             }
 
             // Вывод итоговых данных
-            System.out.println("--- Статистика для файла: " + path + " ---");
+            System.out.println("пше gitСтатистика для файла: " + path + " ---");
             System.out.println("Средний объём трафика в час: " + statistics.getTrafficRate());
             System.out.println("--------------------------------------------------");
 
